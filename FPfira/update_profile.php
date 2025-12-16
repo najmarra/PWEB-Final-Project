@@ -3,7 +3,7 @@ session_start();
 require 'koneksi.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  header("Location: setting.php");
+  header("Location: setting_siswa.php");
   exit;
 }
 
@@ -25,6 +25,7 @@ $_SESSION['gender'] = $_POST['gender'];
 $_SESSION['email']  = $_POST['email'];
 $_SESSION['kelas']  = $_POST['kelas'];
 
-header("Location: setting.php");
+header("Location: setting_siswa.php");
 
 exit;
+
