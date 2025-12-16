@@ -1,6 +1,6 @@
 <?php
 session_start();
-require '../config/koneksi.php';
+require 'koneksi.php';
 
 $user_id = $_SESSION['user_id'];
 
@@ -22,5 +22,6 @@ ORDER BY c.start_date
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$user_id]);
+
 
 echo json_encode($stmt->fetchAll());
