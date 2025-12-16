@@ -1,3 +1,99 @@
+<?php
+session_start();
+include '../config/koneksi.php';
+
+if(!isset($_SESSION['user_id'])){
+  header("Location: ../auth/login.php");
+  exit;
+}
+
+$user_id = $_SESSION['user_id'];
+
+$stmtSummary = $pdo->prepare("
+  SELECT 
+    SUM(q.total_questions) AS total_soal,
+    SUM(a.total_correct)   AS total_benar,
+    SUM(a.total_wrong)     AS total_salah
+  FROM quiz_attempts a
+  JOIN quizzes q ON a.quiz_id = q.id
+  WHERE a.user_id = :user_id
+");
+$stmtSummary->execute(['user_id' => $user_id]);
+$summary = $stmtSummary->fetch();
+
+$stmtMonthly = $pdo->prepare("
+  SELECT 
+    MONTH(a.created_at) AS bulan,
+    SUM(a.score) AS total_poin
+  FROM quiz_attempts a
+  WHERE a.user_id = :user_id
+  GROUP BY MONTH(a.created_at)
+  ORDER BY bulan
+");
+$stmtMonthly->execute(['user_id' => $user_id]);
+
+$reportData = [];
+while ($row = $stmtMonthly->fetch()) {
+  $reportData[] = [
+    'month'  => date("M", mktime(0,0,0,$row['bulan'],1)),
+    'points' => (int)$row['total_poin']
+  ];
+}
+
+$stmtAvg = $pdo->prepare("
+  SELECT AVG(score) AS avg_score
+  FROM quiz_attempts
+  WHERE user_id = :user_id
+");
+$stmtAvg->execute(['user_id' => $user_id]);
+$avg = $stmtAvg->fetch();
+
+$stmtLeaderboard = $pdo->prepare("
+    SELECT 
+        u.id,
+        u.name,
+        u.kelas,
+        SUM(a.score) AS total_poin,
+        SUM(a.total_correct) AS total_benar,
+        COUNT(a.id) AS total_quiz
+    FROM users u
+    JOIN quiz_attempts a ON u.id = a.user_id
+    GROUP BY u.id
+    ORDER BY total_poin DESC
+    LIMIT 10
+");
+$stmtLeaderboard->execute();
+$leaderboard = $stmtLeaderboard->fetchAll();
+
+$stmtLeaderboard = $pdo->prepare("
+    SELECT 
+        u.id,
+        u.name,
+        SUM(a.score) AS total_poin
+    FROM users u
+    JOIN quiz_attempts a ON u.id = a.user_id
+    GROUP BY u.id
+    ORDER BY total_poin DESC
+    LIMIT 10
+");
+$stmtLeaderboard->execute();
+$leaderboard = $stmtLeaderboard->fetchAll();
+
+$stmtMyRank = $pdo->prepare("
+    SELECT ranking FROM (
+        SELECT 
+            u.id,
+            RANK() OVER (ORDER BY SUM(a.score) DESC) AS ranking
+        FROM users u
+        JOIN quiz_attempts a ON u.id = a.user_id
+        GROUP BY u.id
+    ) ranked
+    WHERE id = :user_id
+");
+$stmtMyRank->execute(['user_id' => $user_id]);
+$myRank = $stmtMyRank->fetchColumn();
+?>
+
 <?php $page = 'laporan'; ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -234,6 +330,14 @@ button:hover,
   background:linear-gradient(180deg,var(--green-deep),var(--green-main));
 }
 
+.card.leaderboard::before{
+  background:linear-gradient(180deg,#FFD700,#F2C94C);
+}
+
+.table-warning{
+  font-weight:600;
+}
+
 @media (max-width:1100px){
       .cover{ width:98vw; height:94vh; padding:12px; flex-direction:column; overflow:auto }
       html,body{ overflow:auto } 
@@ -300,40 +404,65 @@ button:hover,
         </div>
       </div>
 
+      <div class="card leaderboard">
+        <div class="title">🏆 Leaderboard</div>
+
+        <table class="table table-borderless">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Nama</th>
+              <th>Total Poin</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php $rank = 1; ?>
+            <?php foreach ($leaderboard as $row): ?>
+              <tr class="<?= $row['id'] == $user_id ? 'table-warning' : '' ?>">
+                <td><?= $rank ?></td>
+                <td><?= htmlspecialchars($row['name']) ?></td>
+                <td><strong><?= $row['total_poin'] ?></strong></td>
+              </tr>
+              <?php $rank++; ?>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+
+        <!-- Peringkat Kamu -->
+        <div class="mt-3 text-center">
+          <strong>📌 Peringkat kamu:</strong>
+          <span class="badge bg-warning text-dark">
+            #<?= $myRank ?? '-' ?>
+          </span>
+        </div>
+      </div>
     </div>
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 /* ===== DATA & CHART (ASLI) ===== */
-const reportData=[
-{month:'Jan',points:900},
-{month:'Feb',points:750},
-{month:'Mar',points:1100},
-{month:'Apr',points:600},
-{month:'May',points:1300},
-{month:'Jun',points:1200}
-];
+const reportData = <?= json_encode($reportData); ?>;
 
-totalSoal.innerText=850;
-totalBenar.innerText=585;
-totalSalah.innerText=265;
+totalSoal.innerText  = <?= $summary['total_soal'] ?? 0 ?>;
+totalBenar.innerText = <?= $summary['total_benar'] ?? 0 ?>;
+totalSalah.innerText = <?= $summary['total_salah'] ?? 0 ?>;
 
-const avg=Math.round(reportData.reduce((a,b)=>a+b.points,0)/reportData.length);
-avgPoint.innerText=avg+' poin';
+avgPoint.innerText = <?= round($avg['avg_score'] ?? 0) ?> + ' poin';
 
-monthlyPoints.innerHTML=reportData.map(d=>`
-<div class="info-row">
-  <span>${d.month}</span>
-  <strong>${d.points} poin</strong>
-</div>`).join('');
+monthlyPoints.innerHTML = reportData.map(d => `
+  <div class="info-row">
+    <span>${d.month}</span>
+    <strong>${d.points} poin</strong>
+  </div>
+`).join('');
 
 new Chart(reportChart,{
   type:'line',
   data:{
-    labels:reportData.map(d=>d.month),
+    labels: reportData.map(d => d.month),
     datasets:[{
-      data:reportData.map(d=>d.points),
+      data: reportData.map(d => d.points),
       tension:.4,
       fill:true,
       backgroundColor:'rgba(109,151,115,.15)',
