@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: application/json');
-require '../config/koneksi.php';
+require 'koneksi.php';
 
 $sql = "
   SELECT 
@@ -20,5 +20,6 @@ $stmt->execute();
 
 /* INI YANG KAMU LUPA */
 $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 
 echo json_encode($data);
