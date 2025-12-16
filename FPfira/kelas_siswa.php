@@ -1,7 +1,7 @@
     <?php
     session_start();
     if (!isset($_SESSION['user_id'])) {
-      header("Location: ../auth/login.php");
+      header("Location: login.php");
       exit;
     }?>
     <!DOCTYPE html>
@@ -461,7 +461,7 @@ let filteredClasses = [];
 let currentTab = 'semua';
 
 /* ================= FETCH RECOMMENDED ================= */
-fetch('../api/get_classes.php')
+fetch('get_classes.php')
   .then(res => res.json())
   .then(data => {
     recommendedClasses = data;
@@ -575,7 +575,7 @@ function updateRecommended(){
 
 /* ================= ADD CLASS ================= */
 function addClass(id){
-  fetch('../api/add_classes.php', {
+  fetch('add_classes.php', {
     method: 'POST',
     headers: {'Content-Type':'application/x-www-form-urlencoded'},
     body: `course_id=${id}`
@@ -649,4 +649,5 @@ function renderSchedule(){
 }
 </script>
     </body>
+
     </html>
