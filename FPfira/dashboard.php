@@ -1,10 +1,10 @@
 <?php
 session_start();
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../auth/login.php");
+    header("Location: login.php");
     exit;
 }
-require '../config/koneksi.php';
+require 'koneksi.php';
 ?>
 <!doctype html>
 <html lang="id">
@@ -724,7 +724,7 @@ require '../config/koneksi.php';
       document.getElementById('logoutBtn')?.addEventListener('click', e => {
         e.preventDefault();
         if(confirm('Yakin ingin logout?')){
-          window.location.href = 'auth/logout.php';
+          window.location.href = 'logout.php';
         }
       });
 
@@ -746,3 +746,4 @@ require '../config/koneksi.php';
       </script>
 </body>
 </html>
+
