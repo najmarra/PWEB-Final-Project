@@ -1,6 +1,6 @@
 <?php
 session_start();
-require '../config/koneksi.php';
+require 'koneksi.php';
 
 $user_id = $_SESSION['user_id'];
 $username = $_POST['username'];
@@ -29,5 +29,6 @@ if (!empty($newPass)) {
 
 echo "<script>
   alert('Data akun berhasil diperbarui');
-  window.location='../pages/setting.php';
+  window.location='setting_siswa.php';
 </script>";
+
