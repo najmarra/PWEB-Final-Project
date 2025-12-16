@@ -1,3 +1,37 @@
+<?php
+include "../koneksi.php";
+header("Content-Type: application/json");
+
+$sub = $_GET['sub'] ?? '';
+
+$stmt = $pdo->prepare("
+  SELECT 
+    pertanyaan,
+    a,b,c,d,
+    jawaban
+  FROM kuis
+  WHERE sub_bab = :sub
+  ORDER BY id ASC
+");
+$stmt->execute(['sub' => $sub]);
+
+$data = [];
+while($r = $stmt->fetch()){
+  $data[] = [
+    "q" => $r['pertanyaan'],
+    "options" => [
+      $r['a'],
+      $r['b'],
+      $r['c'],
+      $r['d']
+    ],
+    "answer" => array_search($r['jawaban'], ['A','B','C','D'])
+  ];
+}
+
+echo json_encode($data);
+
+
 <?php $page = 'quiz'; ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -848,28 +882,33 @@ const xpWrongText = document.getElementById('xpWrongText');
 
 const nextBtn = document.querySelector('.quiz-nav .btn.btn-primary');
 
-/* ================= QUESTIONS ================= */
-const questions = [
-  { q:'2 + 5 = ?', options:['5','6','7','8'], answer:2 },
-  { q:'10 - 3 = ?', options:['5','7','8','6'], answer:1 },
-  { q:'4 x 3 = ?', options:['12','14','10','16'], answer:0 }
-];
-
 /* ================= START ================= */
+let questions = [];
+
 function startQuiz(title){
-  menuQuiz.style.display = 'none';
-  quizPage.style.display = 'block';
+  fetch("api/quiz_add.php?sub=" + encodeURIComponent(title))
+    .then(r => r.json())
+    .then(data => {
+      if(!data.length){
+        alert("Soal belum tersedia");
+        return;
+      }
 
-  quizTitle.innerText = 'Latihan Soal ' + title;
+      questions = data; // 🔥 PENTING
+      
+      menuQuiz.style.display = 'none';
+      quizPage.style.display = 'block';
+      quizTitle.innerText = 'Latihan Soal ' + title;
 
-  index = 0;
-  answers = [];
-  time = 60;
-  quizFinished = false;
+      index = 0;
+      answers = [];
+      time = 60;
+      quizFinished = false;
 
-  renderQuestionList();
-  loadQuestion();
-  startTimer();
+      renderQuestionList();
+      loadQuestion();
+      startTimer();
+    });
 }
 
 /* ================= TIMER ================= */
