@@ -1,9 +1,9 @@
 <?php
 session_start();
-require '../config/koneksi.php';
+require 'koneksi.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  header("Location: ../pages/setting.php");
+  header("Location: setting.php");
   exit;
 }
 
@@ -25,5 +25,6 @@ $_SESSION['gender'] = $_POST['gender'];
 $_SESSION['email']  = $_POST['email'];
 $_SESSION['kelas']  = $_POST['kelas'];
 
-header("Location: ../pages/setting.php");
+header("Location: setting.php");
+
 exit;
