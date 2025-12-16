@@ -107,34 +107,28 @@ CREATE TABLE options (
 -- ===============================
 -- QUIZ ATTEMPTS (HASIL QUIZ)
 -- ===============================
-CREATE TABLE quiz_attempts (
+CREATE TABLE quiz_sessions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT,
-  quiz_id INT,
+  sub_bab VARCHAR(100),
   score INT,
   total_correct INT,
   total_wrong INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id),
-  FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
+  FOREIGN KEY (user_id) REFERENCES users(id)
 );
-
-INSERT INTO quiz_attempts (user_id,quiz_id,score,total_correct,total_wrong) VALUES
-(1,1,90,9,1),
-(1,2,85,8,2),
-(2,1,80,8,2);
 
 -- ===============================
 -- QUIZ ANSWERS (DETAIL JAWABAN)
 -- ===============================
 CREATE TABLE quiz_answers (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  attempt_id INT,
-  question_id INT,
+  session_id INT,
+  kuis_id INT,
   selected_option CHAR(1),
   is_correct BOOLEAN,
-  FOREIGN KEY (attempt_id) REFERENCES quiz_attempts(id),
-  FOREIGN KEY (question_id) REFERENCES questions(id)
+  FOREIGN KEY (session_id) REFERENCES quiz_sessions(id),
+  FOREIGN KEY (kuis_id) REFERENCES kuis(id)
 );
 
 -- ===============================
@@ -146,4 +140,5 @@ CREATE TABLE feedback (
   message TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id)
+
 );
