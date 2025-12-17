@@ -70,6 +70,7 @@ html,body{
   gap:20px;
   box-shadow:0 18px 50px rgba(0,0,0,.08);
   box-sizing:border-box;
+  overflow: hidden;
 }
 
 .sidebar{
@@ -160,6 +161,7 @@ button:hover,
   display:flex;
   flex-direction:column;
   min-width:0;
+  min-height:0;
 }
 
 /* CONTENT */
@@ -167,6 +169,8 @@ button:hover,
   flex:1;
   overflow-y:auto;
   padding-right:6px;
+  min-height:0;
+  height: 100%;
 }
 
 /* CARD */
@@ -176,6 +180,22 @@ button:hover,
   padding:20px;
   margin-bottom:20px;
   box-shadow:0 10px 25px rgba(214,178,76,.18);
+}
+
+#tab-materi .card,
+#tab-video .card,
+#tab-zoom .card{
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#tab-materi .card > .materi-grid,
+#tab-materi .card > .row,
+#tab-zoom .card > .materi-grid{
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* FILTER */
@@ -223,6 +243,17 @@ button:hover,
 .materi-title{
   font-weight:600;
   font-size:15px;
+}
+
+.materi-desc{
+  font-size:13px;
+  color:var(---muted);
+  margin-top:6px;
+
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
 }
 
 .materi-meta{
@@ -401,6 +432,12 @@ button.btn.btn-warning.btn-action:focus{
   margin-top:12px;
 }
 
+/* Optional: hover style kamu */
+.btn.btn-action:hover {
+  background: var(--green-main) !important;
+  color: #fff !important;
+}
+
 @media (max-width:1100px){
       .cover{ width:98vw; height:94vh; padding:12px; flex-direction:column; overflow:auto }
       html,body{ overflow:auto } 
@@ -456,10 +493,18 @@ button.btn.btn-warning.btn-action:focus{
                 onclick="showTab('video')">Video</button>
 
         <button class="btn btn-sm btn-light"
-                data-tab="live"
-                onclick="showTab('live')">Live</button>
+                data-tab="zoom"
+                onclick="showTab('zoom')">Zoom</button>
       </div>
-        <div id="materiList" class="materi-grid"></div>
+        <div id="materiList" class="materi-grid">
+          <div class="materi-item">
+            <div class="materi-thumb">📄</div>
+            <div class="materi-title">Judul Materi</div>
+            <div class="materi-desc">
+              Ini deskripsi materi yang sangat panjang sampai lebih dari card...
+            </div>
+          </div>
+        </div> 
         </div>
       </div>
 
@@ -478,8 +523,8 @@ button.btn.btn-warning.btn-action:focus{
                   onclick="showTab('video')">Video</button>
 
           <button class="btn btn-sm btn-light"
-                  data-tab="live"
-                  onclick="showTab('live')">Live</button>
+                  data-tab="zoom"
+                  onclick="showTab('zoom')">Zoom</button>
         </div>
 
         <div class="row">
@@ -487,7 +532,11 @@ button.btn.btn-warning.btn-action:focus{
           <div class="col-8">
             <div class="cardVideo">
               <div class="ratio ratio-16x9">
-                <iframe id="videoPlayer" src="" allowfullscreen></iframe>
+                <iframe id="videoPlayer"
+                        src=""
+                        allow="autoplay; encrypted-media"
+                        allowfullscreen>
+                </iframe>
               </div>
               <h6 class="mt-2" id="videoTitle"></h6>
               <p id="videoDesc"></p>
@@ -498,11 +547,8 @@ button.btn.btn-warning.btn-action:focus{
       </div>
       </div>
 
-      <!-- TAB LIVE -->
-      <!-- TAB LIVE -->
-  <div id="tab-live" class="d-none">
-
-  <!-- LIVE STREAMING -->
+      <!-- TAB ZOOM -->
+  <div id="tab-zoom" class="d-none">
   <div class="card mb-4">
     <h4>Materi Belajar</h4>
 
@@ -515,28 +561,12 @@ button.btn.btn-warning.btn-action:focus{
                 data-tab="video"
                 onclick="showTab('video')">Video</button>
 
-        <button class="btn btn-sm btn-light"
-                data-tab="live"
-                onclick="showTab('live') active">Live</button>
+        <button class="btn btn-sm btn-light active"
+                data-tab="zoom"
+                onclick="showTab('zoom')">Zoom</button>
       </div>
 
-    <h5 class="mb-3">🔴 Live Streaming</h5>
-
-    <!-- VIDEO UTAMA -->
-    <div class="ratio ratio-16x9 mb-3">
-      <iframe id="livePlayer"
-        src=""
-        allowfullscreen></iframe>
-    </div>
-
-    <!-- LIST LIVE -->
-    <div class="d-flex gap-3 overflow-auto pb-2" id="liveList">
-      <!-- card live di render js -->
-    </div>
-  </div>
-
   <!-- ZOOM -->
-  <div class="card">
     <h5 class="mb-3">🎥 Zoom Class</h5>
 
     <h6 class="text-muted mb-2">Sedang Berlangsung</h6>
@@ -544,7 +574,6 @@ button.btn.btn-warning.btn-action:focus{
 
     <h6 class="text-muted mb-2">Terjadwal</h6>
     <div class="materi-grid" id="zoomUpcoming"></div>
-  </div>
 
 </div>
 
@@ -561,6 +590,9 @@ button.btn.btn-warning.btn-action:focus{
     </div>
   </div>
 </div>
+</div>
+</div>
+</main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 /* ===== DOM ===== */
@@ -569,150 +601,86 @@ const videoList    = document.getElementById('videoList');
 const videoPlayer  = document.getElementById('videoPlayer');
 const videoTitle   = document.getElementById('videoTitle');
 const videoDesc    = document.getElementById('videoDesc');
+const pdfDesc      = document.getElementById('pdfDesc');
 const materiReader = document.getElementById('materiReader');
 const materiTitle  = document.getElementById('materiTitle');
 const materiContent= document.getElementById('materiContent');
 const downloadLink = document.getElementById('downloadLink');
-const liveList     = document.getElementById('liveList');
-const livePlayer   = document.getElementById('livePlayer');
-const zoomLive     = document.getElementById('zoomLive');
-const zoomUpcoming = document.getElementById('zoomUpcoming');
+const btnQuiz = document.getElementById('btnQuiz');
 
-let currentVideo='';
-
-
-/* ===== TAB ===== */
 function showTab(tab){
-  // hide semua tab konten
-  ['materi','video','live'].forEach(t=>{
+  ['materi','video','zoom'].forEach(t=>{
     document.getElementById('tab-'+t)?.classList.add('d-none');
   });
 
-  // show tab terpilih
   document.getElementById('tab-'+tab)?.classList.remove('d-none');
 
-  if(tab !== 'video'){
-    document.getElementById('btnQuiz')?.style.setProperty('display','none');
-  }
-
-  // reset semua active di SEMUA filter bar
   document.querySelectorAll('.filter-bar .btn')
     .forEach(btn=>{
       btn.classList.toggle('active', btn.dataset.tab === tab);
     });
-}
 
-
-/* ===== MATERI ===== */
-function renderMateri(){
-  materiList.innerHTML='';
-  materiDB.forEach(m=>{
-    const percent = Math.round((m.done / m.total) * 100);
-    materiList.innerHTML += `
-      <div class="materi-item" onclick="openMateri(${m.id})">
-        <div class="materi-thumb">${m.icon}</div>
-        <div class="materi-title">${m.mapel}</div>
-        <div class="materi-meta">${m.total} materi • ${m.done} selesai</div>
-        <div class="progress mb-1">
-          <div class="progress-bar bg-success" style="width:${percent}%"></div>
-        </div>
-        <small class="text-muted">Progress ${percent}%</small>
-      </div>`;
-  });
-}
-
-function openMateri(id){
-  const m = materiDB.find(x=>x.id===id);
-  materiReader.classList.remove('d-none');
-  materiTitle.innerText = m.judul;
-  materiContent.innerText = m.isi;
-  downloadLink.href = m.file;
-  currentVideo = m.videoId;
-}
-
-function closeMateri(){
-  materiReader.classList.add('d-none');
-}
-
-/* ===== VIDEO ===== */
-function renderVideo(){
-  videoList.innerHTML='';
-  videoDB.forEach(v=>{
-    videoList.innerHTML += `
-      <div class="class-card" onclick="playVideo('${v.id}','${v.judul}','${v.desc}')">
-        <strong>${v.judul}</strong><br>
-        <small>${v.desc}</small>
-      </div>`;
-  });
-}
-
-function playVideo(id,title,desc){
-  showTab('video',document.querySelectorAll('.filter-bar button')[1]);
-  videoPlayer.src = `https://www.youtube.com/embed/${id}`;
-  videoTitle.innerText = title;
-  videoDesc.innerText = desc;
-
-  const btn = document.getElementById('btnQuiz');
-  if(btn){
-    btn.style.display = 'inline-block';
+   if(tab === 'zoom'){
+    loadZoom();
   }
 }
 
-/* ===== LIVE ===== */
-function playLive(url){
-  livePlayer.src = url;
-}
-
-function renderLive(){
-  liveList.innerHTML='';
-  liveDB.forEach((l,i)=>{
-    liveList.innerHTML += `
-      <div class="live-card" onclick="playLive('${l.youtube}')">
-        <div class="live-thumb">▶</div>
-        <strong>${l.title}</strong><br>
-        <small>${l.mentor}</small>
-      </div>`;
-    if(i===0) livePlayer.src = l.youtube;
-  });
-}
-
-/* ===== ZOOM ===== */
-function renderZoom(){
-  zoomLive.innerHTML='';
-  zoomUpcoming.innerHTML='';
-  zoomDB.forEach(z=>{
-    const card = `
-      <div class="zoom-card">
-        <strong>${z.title}</strong><br>
-        <small>${z.mentor}</small><br>
-        <small>${z.time}</small><br>
-        <a href="${z.link}" target="_blank" class="btn btn-sm btn-primary mt-2">Masuk Zoom</a>
-      </div>`;
-    z.status==='live' ? zoomLive.innerHTML+=card : zoomUpcoming.innerHTML+=card;
-  });
-}
-
-/* ===== AWAL CONNECTOR ===== */
-fetch("../api/materi_list.php")
+/* ===== LOAD MATERI DARI BACKEND ===== */
+fetch("../api/materi_siswa.php")
   .then(res => res.json())
   .then(data => {
-    materiList.innerHTML = "";
+    renderMateri(data.pdf);
+    renderVideo(data.video);
+  })
+  .catch(err => console.error(err));
 
-    data.forEach(m => {
-      materiList.innerHTML += `
-        <div class="materi-card" onclick='openMateri(${JSON.stringify(m)})'>
-          <h6>${m.judul}</h6>
-          <small>${m.jenis.toUpperCase()}</small>
-        </div>
-      `;
-    });
+/* ===== RENDER PDF ===== */
+function renderMateri(list){
+  materiList.innerHTML = "";
+
+  if(list.length === 0){
+    materiList.innerHTML = "<div class='text-muted'>Belum ada materi</div>";
+    return;
+  }
+
+  list.forEach(m=>{
+    materiList.innerHTML += `
+      <div class="materi-item" onclick='openMateri(${JSON.stringify(m)})'>
+        <div class="materi-thumb">📄</div>
+        <div class="materi-title">${m.judul}</div>
+        <div class="materi-desc"> ${m.deskripsi || ''}</div>
+      </div>
+    `;
   });
+}
 
-function openMateri(m) {
+/* ===== RENDER VIDEO ===== */
+function renderVideo(list){
+  videoList.innerHTML = "";
+
+  if(list.length === 0){
+    videoList.innerHTML = "<div class='text-muted'>Belum ada video</div>";
+    return;
+  }
+
+  list.forEach(v=>{
+    videoList.innerHTML += `
+      <div class="class-card" onclick='playDriveVideo(${JSON.stringify(v)})'>
+        <strong>${v.judul}</strong><br>
+        <small class="text-muted">
+          ${v.deskripsi || ''}
+        </small>
+      </div>
+    `;
+  });
+}
+
+/* ===== OPEN MATERI ===== */
+function openMateri(m){
   materiReader.classList.remove("d-none");
   materiTitle.innerText = m.judul;
 
-  if (m.jenis === "pdf") {
+  if(m.jenis === 'pdf'){
     materiContent.innerHTML = `
       <iframe src="../${m.file}" width="100%" height="450"></iframe>
     `;
@@ -726,77 +694,102 @@ function openMateri(m) {
     `;
     downloadLink.classList.add("d-none");
   }
-
-  iframe.src = convertDriveLink(m.file);
-  iframe.src = "../" + m.file;
-  downloadLink.href = "../" + m.file;
-
 }
 
+function closeMateri(){
+  materiReader.classList.add("d-none");
+}
 
-function convertDriveLink(link) {
+/* ===== VIDEO PLAYER ===== */
+function playDriveVideo(v){
+  showTab('video');
+
+  videoTitle.innerText = v.judul;
+  videoDesc.innerText  = v.deskripsi || '';
+
+  videoPlayer.src = convertDriveLink(v.file);
+  btnQuiz.style.display = "inline-block";
+}
+
+/* ===== UTIL ===== */
+function extractDriveId(link){
   const id = link.match(/\/d\/(.*?)\//);
-  return id ? `https://drive.google.com/file/d/${id[1]}/preview` : link;
+  return id ? id[1] : "";
 }
 
+function convertDriveLink(link){
+  // support link share & link /d/
+  let id = null;
 
-function showTab(tab, btn){
-  ['materi','video','live'].forEach(t=>{
-    document.getElementById('tab-'+t)?.classList.add('d-none');
-  });
-  document.getElementById('tab-'+tab).classList.remove('d-none');
-
-  document.querySelectorAll('.filter-bar button')
-    .forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-
-  if(tab === 'live'){
-    loadZoom();
+  if(link.includes('/d/')){
+    id = link.match(/\/d\/(.*?)\//)?.[1];
+  } else if(link.includes('id=')){
+    id = link.match(/id=([^&]+)/)?.[1];
   }
-}
 
+  return id
+    ? `https://drive.google.com/file/d/${id}/preview`
+    : link;
+}
 
 function loadZoom(){
-  fetch("../api/zoom_list.php")
-    .then(res=>res.json())
-    .then(data=>{
-      zoomLive.innerHTML = "";
-
-      if(data.length === 0){
-        zoomLive.innerHTML = `
-          <div class="text-muted">
-            Belum ada Zoom yang sedang live
-          </div>
-        `;
-        return;
-      }
-
-      data.forEach(z=>{
-        zoomLive.innerHTML += `
-          <div class="zoom-card">
-            <strong>${z.title}</strong><br>
-            <span class="badge bg-danger">LIVE</span><br>
-            <a href="${z.join_url}"
-               target="_blank"
-               class="btn btn-sm btn-primary mt-2">
-               Masuk Zoom
-            </a>
-          </div>
-        `;
-      });
+  fetch("../api/zoom_list_siswa.php")
+    .then(r => r.json())
+    .then(d => {
+      renderZoomLive(d.live || []);
+      renderZoomUpcoming(d.upcoming || []);
     })
-    .catch(err=>{
-      zoomLive.innerHTML = "❌ Gagal load Zoom";
-      console.error(err);
-    });
+    .catch(e => console.error("ZOOM ERROR", e));
 }
-/* ===== AKHIR CONNECTOR ===== */
 
-/* INIT */
-renderMateri();
-renderVideo();
-renderLive();
-renderZoom();
+
+function renderZoomLive(list){
+  const wrap = document.getElementById("zoomLive");
+  wrap.innerHTML = "";
+
+  if(!list || list.length === 0){
+    wrap.innerHTML = "<div class='text-muted'>Tidak ada kelas live</div>";
+    return;
+  }
+
+  list.forEach(z => {
+    wrap.innerHTML += `
+      <div class="materi-item">
+        <div class="materi-thumb">🎥</div>
+        <div class="materi-title">${z.title}</div>
+        <div class="mt-2">
+          <a href="${z.join_url}" 
+             target="_blank" 
+             class="btn btn-sm btn-danger w-100 btn-action">
+            Join Zoom
+          </a>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function renderZoomUpcoming(list){
+  const wrap = document.getElementById("zoomUpcoming");
+  wrap.innerHTML = "";
+
+  if(!list.length){
+    wrap.innerHTML = "<div class='text-muted'>Belum ada jadwal</div>";
+    return;
+  }
+
+  list.forEach(z => {
+    wrap.innerHTML += `
+      <div class="materi-item">
+        <div class="materi-thumb">📅</div>
+        <div class="materi-title">${z.title}</div>
+        <small class="text-muted">
+          ${new Date(z.created_at).toLocaleString()}
+        </small>
+      </div>
+    `;
+  });
+}
 </script>
 </body>
 </html>
