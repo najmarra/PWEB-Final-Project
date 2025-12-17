@@ -1,37 +1,3 @@
-<?php
-include "../koneksi.php";
-header("Content-Type: application/json");
-
-$sub = $_GET['sub'] ?? '';
-
-$stmt = $pdo->prepare("
-  SELECT 
-    pertanyaan,
-    a,b,c,d,
-    jawaban
-  FROM kuis
-  WHERE sub_bab = :sub
-  ORDER BY id ASC
-");
-$stmt->execute(['sub' => $sub]);
-
-$data = [];
-while($r = $stmt->fetch()){
-  $data[] = [
-    "q" => $r['pertanyaan'],
-    "options" => [
-      $r['a'],
-      $r['b'],
-      $r['c'],
-      $r['d']
-    ],
-    "answer" => array_search($r['jawaban'], ['A','B','C','D'])
-  ];
-}
-
-echo json_encode($data);
-
-
 <?php $page = 'quiz'; ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -91,7 +57,7 @@ echo json_encode($data);
 html,body{
   height:100%;
   margin:0;
-  overflow:hidden;
+  overflow:auto;
   font-family:'Roboto',system-ui,Arial;
   background:var(--dark);
 }
@@ -108,6 +74,7 @@ html,body{
   gap:20px;
   box-shadow:0 18px 50px rgba(12,59,46,.08);
   box-sizing:border-box;
+  overflow: hidden;
 }
 
 .sidebar{
@@ -198,6 +165,7 @@ button:hover,
   display:flex;
   flex-direction:column;
   min-width:0;
+  min-height:0;
 }
 
 /* CONTENT (SCROLL DI SINI) */
@@ -205,6 +173,8 @@ button:hover,
   flex:1;
   overflow-y:auto;
   padding-right:6px;
+  min-height:0;
+  height:100%;
 }
 
 /* CARD */
@@ -696,32 +666,11 @@ button:hover,
   
   <!-- MAIN -->
   <main class="main">
-
+    <div class="content">
     <!-- PILIH PAKET -->
     <div id="menuQuiz" class="card">
     <h5 class="mb-3">Pilih Latihan Soal</h5>
-
-    <div class="row">
-        <div class="col-md-4">
-        <div class="card text-center">
-            <h6>Matematika Dasar</h6>
-            <button class="btn btn-success mt-2 btn-action1"
-            onclick="startQuiz('Matematika Dasar')">
-            Mulai
-            </button>
-        </div>
-        </div>
-
-        <div class="col-md-4">
-        <div class="card text-center">
-            <h6>Bahasa Indonesia</h6>
-            <button class="btn btn-success mt-2 btn-action1"
-            onclick="startQuiz('Bahasa Indonesia')">
-            Mulai
-            </button>
-        </div>
-        </div>
-    </div>
+      <div class="row" id="paketQuiz"></div>    
     </div>
 
     <!-- QUIZ (AWALNYA HIDDEN) -->
@@ -841,8 +790,9 @@ button:hover,
     <!-- LIST SOAL -->
     <div id="answerKeyList"></div>
 
-    <button class="btn btn-secondary mt-4" onclick="backToSummary()">Summary </button>
+    <button class="btn btn-secondary mt-4 btn-action" onclick="backToSummary()">Summary </button>
   </div>
+</div>
 </div>
   </main>
 </div>
@@ -884,9 +834,19 @@ const nextBtn = document.querySelector('.quiz-nav .btn.btn-primary');
 
 /* ================= START ================= */
 let questions = [];
+let quizSub = '';
+let kuisId = null;
 
-function startQuiz(title){
-  fetch("api/quiz_add.php?sub=" + encodeURIComponent(title))
+function startQuiz(sub){
+  quizSub = sub;
+
+  index = 0;
+  answers = [];
+  time = 60;
+  quizFinished = false;
+  const mapIndex = { A:0, B:1, C:2, D:3 };
+
+  fetch(`../api/quiz_by_sub.php?sub=${encodeURIComponent(sub)}`)
     .then(r => r.json())
     .then(data => {
       if(!data.length){
@@ -894,16 +854,18 @@ function startQuiz(title){
         return;
       }
 
-      questions = data; // 🔥 PENTING
-      
+      kuisId = data[0].id; // 🔥 INI PENTING
+
+      questions = data.map(q => ({
+        id: q.id,
+        q: q.pertanyaan,
+        options: [q.a, q.b, q.c, q.d],
+        answer: mapIndex[q.jawaban.trim()]
+      }));
+
       menuQuiz.style.display = 'none';
       quizPage.style.display = 'block';
-      quizTitle.innerText = 'Latihan Soal ' + title;
-
-      index = 0;
-      answers = [];
-      time = 60;
-      quizFinished = false;
+      quizTitle.innerText = "Latihan Soal: " + sub;
 
       renderQuestionList();
       loadQuestion();
@@ -965,7 +927,13 @@ function nextQuestion(){
     alert('Pilih jawaban dulu');
     return;
   }
-  index === questions.length - 1 ? finishQuiz() : (index++, loadQuestion());
+
+  if(index === questions.length - 1){
+    finishQuiz();
+  } else {
+    index++;
+    loadQuestion();
+  }
 }
 
 function prevQuestion(){
@@ -974,6 +942,34 @@ function prevQuestion(){
     loadQuestion();
   }
 }
+
+const paketQuiz = document.getElementById('paketQuiz');
+
+fetch("../api/sub_bab_list.php")
+  .then(r => r.json())
+  .then(data => {
+    paketQuiz.innerHTML = "";
+
+    if (!data.length) {
+      paketQuiz.innerHTML = "<p>Belum ada kuis</p>";
+      return;
+    }
+
+    data.forEach(row => {
+      paketQuiz.innerHTML += `
+        <div class="col-md-4">
+          <div class="card text-center">
+            <h6>${row.sub_bab}</h6>
+            <small>${row.total} soal</small>
+            <button class="btn btn-success mt-2 btn-action1"
+              onclick="startQuiz('${row.sub_bab}')">
+              Mulai
+            </button>
+          </div>
+        </div>
+      `;
+    });
+  });
 
 /* ================= UI ================= */
 function renderQuestionList(){
@@ -1005,7 +1001,24 @@ function finishQuiz(isTimeUp = false){
   if(quizFinished) return;
   quizFinished = true;
   clearInterval(timer);
-  showSummary();
+
+  const payload = {};
+  questions.forEach((q,i)=>{
+    payload[q.id] = ['A','B','C','D'][answers[i]];
+  });
+
+  fetch("../api/quiz_submit.php",{
+    method:"POST",
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams({
+      sub_bab: quizSub,
+      answers: JSON.stringify(payload)
+    })
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    showSummary(res);
+  });
 }
 
 function showSummary(){
@@ -1035,15 +1048,15 @@ function backToSummary(){
 }
 
 function renderAnswerKey(){
-  answerKeyList.innerHTML='';
-  let correct=0;
+  answerKeyList.innerHTML = '';
+  let correct = 0;
 
-  questions.forEach((q,i)=>{
+  questions.forEach((q, i) => {
     const isCorrect = answers[i] === q.answer;
-    if(isCorrect) correct++;
+    if (isCorrect) correct++;
 
-    const div=document.createElement('div');
-    div.className = `answer-item ${isCorrect?'correct':'wrong'}`;
+    const div = document.createElement('div');
+    div.className = `answer-item ${isCorrect ? 'correct' : 'wrong'}`;
     div.innerHTML = `
       <strong>Soal ${i+1}</strong>
       <div>Jawaban kamu: <b>${q.options[answers[i]] ?? '-'}</b></div>
@@ -1052,11 +1065,11 @@ function renderAnswerKey(){
     answerKeyList.appendChild(div);
   });
 
-  const correctPercent = Math.round(correct/questions.length*100);
-  xpCorrect.style.width = correctPercent+'%';
-  xpWrong.style.width = (100-correctPercent)+'%';
-  xpCorrectText.innerText = correctPercent+'%';
-  xpWrongText.innerText = (100-correctPercent)+'%';
+  const correctPercent = Math.round(correct / questions.length * 100);
+  xpCorrect.style.width = correctPercent + '%';
+  xpWrong.style.width = (100 - correctPercent) + '%';
+  xpCorrectText.innerText = correctPercent + '%';
+  xpWrongText.innerText = (100 - correctPercent) + '%';
 }
 </script>
 </body>
