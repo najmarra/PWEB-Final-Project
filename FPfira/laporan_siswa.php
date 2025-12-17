@@ -1,9 +1,9 @@
 <?php
 session_start();
-include '../config/koneksi.php';
+include 'koneksi.php';
 
 if(!isset($_SESSION['user_id'])){
-  header("Location: ../auth/login.php");
+  header("Location: login.php");
   exit;
 }
 
@@ -446,3 +446,4 @@ new Chart(reportChart,{
 
 </body>
 </html>
+
