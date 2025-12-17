@@ -593,6 +593,9 @@ $stmtLeaderboard = $pdo->query("
         <!-- LEADERBOARD SISWA -->
         <div class="panel leaderboard">
           <div class="body">
+            <div style="font-weight:700;font-family:'Poppins',sans-serif">
+              Leaderboard
+            </div>
           <?php $rank = 1; ?>
           <?php foreach ($stmtLeaderboard as $row): ?>
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
@@ -670,3 +673,4 @@ $stmtLeaderboard = $pdo->query("
       </script>
 </body>
 </html>
+
