@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    header("Location: ../auth/login.php");
     exit;
 }
 ?>
@@ -414,7 +414,7 @@ textarea{
   <div class="modal-box">
     <h3>Edit Profil</h3>
 
-    <form method="POST" action="update_profile.php">
+    <form method="POST" action="../auth/update_profile.php">
       <label>Nama</label>
       <input type="text" name="name" required
         value="<?= htmlspecialchars($_SESSION['name']) ?>">
@@ -446,7 +446,7 @@ textarea{
   <div class="modal-box">
     <h3>Edit Username & Password</h3>
 
-    <form id = "passwordForm" method="POST" action="update_password.php">
+    <form id = "passwordForm" method="POST" action="../auth/update_password.php">
 
       <!-- ================= USERNAME ================= -->
       <label>Username</label>
@@ -665,5 +665,4 @@ document.getElementById('passwordForm').addEventListener('submit', function(e){
 </script>
 
 </body>
-
 </html>
