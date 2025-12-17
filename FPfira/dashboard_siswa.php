@@ -1,10 +1,56 @@
 <?php
 session_start();
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    header("Location: ../auth/login.php");
     exit;
 }
-require 'koneksi.php';
+
+require '../config/koneksi.php'; // harus define $pdo
+
+/* ======================
+   QUIZ SELESAI
+====================== */
+$stmtQuiz = $pdo->prepare("
+  SELECT COUNT(*) AS total
+  FROM quiz_attempts
+  WHERE user_id = :uid
+");
+$stmtQuiz->execute([
+  ':uid' => $_SESSION['user_id']
+]);
+$quizSelesai = $stmtQuiz->fetch()['total'];
+
+/* ======================
+   VIDEO MATERI
+====================== */
+$stmtVideo = $pdo->query("
+  SELECT COUNT(*) AS total
+  FROM materi
+  WHERE jenis = 'video'
+");
+$video = $stmtVideo->fetch()['total'];
+
+/* ======================
+   MATERI BELAJAR
+====================== */
+$stmtMateri = $pdo->query("
+  SELECT id, judul, jenis
+  FROM materi
+  ORDER BY created_at DESC
+  LIMIT 7
+");
+
+/* ======================
+   LEADERBOARD
+====================== */
+$stmtLeaderboard = $pdo->query("
+  SELECT u.name, SUM(q.score) AS poin
+  FROM quiz_attempts q
+  JOIN users u ON u.id = q.user_id
+  GROUP BY q.user_id
+  ORDER BY poin DESC
+  LIMIT 10
+");
 ?>
 <!doctype html>
 <html lang="id">
@@ -480,71 +526,29 @@ require 'koneksi.php';
           </div>
 
         <div class="body">
-          <div class="course-item">
-            <div class="badge-thumb" style="background:#FFC107">M</div>
-            <div style="flex:1">
-              <div style="font-weight:600">Matematika</div>
-              <div class="small-muted">Kelas XII</div>
-            </div>
-            <button class="btn btn-sm btn-outline-secondary btn-action">Lihat</button>
-          </div>
+          <?php foreach ($stmtMateri as $m): ?>
+              <div class="course-item">
+                <div class="badge-thumb" 
+                    style="background:<?= $m['jenis']=='video'?'#4FB6A3':'#FFC107'; ?>">
+                  <?= strtoupper(substr($m['judul'],0,1)); ?>
+                </div>
 
-          <div class="course-item">
-            <div class="badge-thumb" style="background:#4FB6A3">F</div>
-            <div style="flex:1">
-              <div style="font-weight:600">Fisika</div>
-              <div class="small-muted">Kelas XII</div>
-            </div>
-            <button class="btn btn-sm btn-outline-secondary btn-action">Lihat</button>
-          </div>
+                <div style="flex:1">
+                  <div style="font-weight:600"><?= $m['judul']; ?></div>
+                  <div class="small-muted">
+                    <?= strtoupper($m['jenis']); ?>
+                  </div>
+                </div>
 
-          <div class="course-item">
-            <div class="badge-thumb" style="background:#FF6B5F">B</div>
-            <div style="flex:1">
-              <div style="font-weight:600">Bahasa Indonesia</div>
-              <div class="small-muted">Kelas XII</div>
-            </div>
-            <button class="btn btn-sm btn-outline-secondary btn-action">Lihat</button>
-          </div>
-
-          <div class="course-item">
-            <div class="badge-thumb" style="background:#4FB6A3">E</div>
-            <div style="flex:1">
-              <div style="font-weight:600">Bahasa Inggris</div>
-              <div class="small-muted">Kelas XII</div>
-            </div>
-            <button class="btn btn-sm btn-outline-secondary btn-action">Lihat</button>
-          </div>
-
-          <div class="course-item">
-            <div class="badge-thumb" style="background:#FF6B5F">M</div>
-            <div style="flex:1">
-              <div style="font-weight:600">Informatika</div>
-              <div class="small-muted">Kelas XII</div>
-            </div>
-            <button class="btn btn-sm btn-outline-secondary btn-action">Lihat</button>
-          </div>
-
-          <div class="course-item">
-            <div class="badge-thumb" style="background:#FFC107">M</div>
-            <div style="flex:1">
-              <div style="font-weight:600">Biologi</div>
-              <div class="small-muted">Kelas XII</div>
-            </div>
-            <button class="btn btn-sm btn-outline-secondary btn-action">Lihat</button>
-          </div>
-
-          <div class="course-item">
-            <div class="badge-thumb" style="background:#4FB6A3">M</div>
-            <div style="flex:1">
-              <div style="font-weight:600">Kimia</div>
-              <div class="small-muted">Kelas XII</div>
-            </div>
-            <button class="btn btn-sm btn-outline-secondary btn-action">Lihat</button>
-          </div>
-          </div>
+                <button 
+                  class="btn btn-sm btn-outline-secondary btn-action"
+                  onclick="openMateri(<?= $m['id']; ?>)">
+                  Lihat
+                </button>
+              </div>
+            <?php endforeach; ?>
         </div>
-
+        </div>
         <!-- CURRENT ACTIVITY -->
         <div class="panel current-activity">
           <div style="font-weight:700; margin-bottom:8px">Current Activity</div>
@@ -566,7 +570,7 @@ require 'koneksi.php';
 
             <div class="stat-card yellow interactive" onclick="window.location.href='quiz.php'">
               <div class="stat-row">
-                <div class="stat-number">45</div>
+                <div class="stat-number"><?= $quizSelesai; ?></div>
                 <div class="stat-text">
                   <div>Quiz</div>
                   <div>Selesai</div>
@@ -576,7 +580,7 @@ require 'koneksi.php';
 
             <div class="stat-card red interactive" onclick="window.location.href='materi.php'">
               <div class="stat-row">
-                <div class="stat-number">20</div>
+                <div class="stat-number"><?= $video; ?></div>
                 <div class="stat-text">
                   <div>Video</div>
                   <div>Materi</div>
@@ -588,101 +592,21 @@ require 'koneksi.php';
 
         <!-- LEADERBOARD SISWA -->
         <div class="panel leaderboard">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <div style="font-weight:700;font-family:'Poppins',sans-serif">Leaderboard</div>
-            <a href="#" class="small" style="color:var(--green);text-decoration:none" onclick="window.location.href='laporan.php'">Semua</a>
-          </div>
-          
           <div class="body">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <img src="https://i.pravatar.cc/40?img=1" style="width:36px;height:36px;border-radius:8px">
-            <div style="flex:1">
-              <div style="font-weight:600">Alya</div>
-              <div class="small-muted">1200 poin</div>
-            </div>
-            <span class="badge bg-success">#1</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <img src="https://i.pravatar.cc/40?img=2" style="width:36px;height:36px;border-radius:8px">
-            <div style="flex:1">
-              <div style="font-weight:600">Rizky</div>
-              <div class="small-muted">1100 poin</div>
-            </div>
-            <span class="badge bg-success">#2</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px">
-            <img src="https://i.pravatar.cc/40?img=3" style="width:36px;height:36px;border-radius:8px">
-            <div style="flex:1">
-              <div style="font-weight:600">Nabila</div>
-              <div class="small-muted">980 poin</div>
-            </div>
-            <span class="badge bg-success">#3</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <img src="https://i.pravatar.cc/40?img=1" style="width:36px;height:36px;border-radius:8px">
-            <div style="flex:1">
-              <div style="font-weight:600">Naufa</div>
-              <div class="small-muted">975 poin</div>
-            </div>
-            <span class="badge bg-secondary">#4</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <img src="https://i.pravatar.cc/40?img=1" style="width:36px;height:36px;border-radius:8px">
-            <div style="flex:1">
-              <div style="font-weight:600">Dani</div>
-              <div class="small-muted">950 poin</div>
-            </div>
-            <span class="badge bg-secondary">#5</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <img src="https://i.pravatar.cc/40?img=1" style="width:36px;height:36px;border-radius:8px">
-            <div style="flex:1">
-              <div style="font-weight:600">Megan</div>
-              <div class="small-muted">947 poin</div>
-            </div>
-            <span class="badge bg-secondary">#6</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <img src="https://i.pravatar.cc/40?img=1" style="width:36px;height:36px;border-radius:8px">
-            <div style="flex:1">
-              <div style="font-weight:600">Naura</div>
-              <div class="small-muted">933 poin</div>
-            </div>
-            <span class="badge bg-secondary">#7</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <img src="https://i.pravatar.cc/40?img=1" style="width:36px;height:36px;border-radius:8px">
-            <div style="flex:1">
-              <div style="font-weight:600">Bagas</div>
-              <div class="small-muted">916 poin</div>
-            </div>
-            <span class="badge bg-secondary">#8</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <img src="https://i.pravatar.cc/40?img=1" style="width:36px;height:36px;border-radius:8px">
-            <div style="flex:1">
-              <div style="font-weight:600">Linda</div>
-              <div class="small-muted">901 poin</div>
-            </div>
-            <span class="badge bg-secondary">#9</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <img src="https://i.pravatar.cc/40?img=1" style="width:36px;height:36px;border-radius:8px">
-            <div style="flex:1">
-              <div style="font-weight:600">Mahda</div>
-              <div class="small-muted">899 poin</div>
-            </div>
-            <span class="badge bg-secondary">#10</span>
-          </div>
+          <?php $rank = 1; ?>
+          <?php foreach ($stmtLeaderboard as $row): ?>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <img src="https://i.pravatar.cc/40?u=<?= $row['name']; ?>" style="width:36px;height:36px;border-radius:8px">
+                <div style="flex:1">
+                  <div style="font-weight:600"><?= $row['name']; ?></div>
+                  <div class="small-muted"><?= $row['poin']; ?> poin</div>
+                </div>
+                <span class="badge <?= $rank<=3?'bg-success':'bg-secondary'; ?>">
+                  #<?= $rank++; ?>
+                </span>
+              </div>
+              <?php endforeach; ?>
+        </div>
         </div>
       </div>
 
@@ -724,7 +648,7 @@ require 'koneksi.php';
       document.getElementById('logoutBtn')?.addEventListener('click', e => {
         e.preventDefault();
         if(confirm('Yakin ingin logout?')){
-          window.location.href = 'logout.php';
+          window.location.href = 'auth/logout.php';
         }
       });
 
@@ -746,4 +670,3 @@ require 'koneksi.php';
       </script>
 </body>
 </html>
-
