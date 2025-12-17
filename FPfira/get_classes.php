@@ -21,5 +21,4 @@ $stmt->execute();
 /* INI YANG KAMU LUPA */
 $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-
 echo json_encode($data);
