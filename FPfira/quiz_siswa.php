@@ -846,7 +846,7 @@ function startQuiz(sub){
   quizFinished = false;
   const mapIndex = { A:0, B:1, C:2, D:3 };
 
-  fetch(`../api/quiz_by_sub.php?sub=${encodeURIComponent(sub)}`)
+  fetch(`quiz_by_sub.php?sub=${encodeURIComponent(sub)}`)
     .then(r => r.json())
     .then(data => {
       if(!data.length){
@@ -945,7 +945,7 @@ function prevQuestion(){
 
 const paketQuiz = document.getElementById('paketQuiz');
 
-fetch("../api/sub_bab_list.php")
+fetch("sub_bab_list.php")
   .then(r => r.json())
   .then(data => {
     paketQuiz.innerHTML = "";
@@ -1007,7 +1007,7 @@ function finishQuiz(isTimeUp = false){
     payload[q.id] = ['A','B','C','D'][answers[i]];
   });
 
-  fetch("../api/quiz_submit.php",{
+  fetch("quiz_submit.php",{
     method:"POST",
     headers:{'Content-Type':'application/x-www-form-urlencoded'},
     body:new URLSearchParams({
@@ -1074,3 +1074,4 @@ function renderAnswerKey(){
 </script>
 </body>
 </html>
+
