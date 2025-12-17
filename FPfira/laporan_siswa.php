@@ -9,90 +9,60 @@ if(!isset($_SESSION['user_id'])){
 
 $user_id = $_SESSION['user_id'];
 
-$stmtSummary = $pdo->prepare("
+$stmt = $pdo->prepare("
   SELECT 
-    SUM(q.total_questions) AS total_soal,
-    SUM(a.total_correct)   AS total_benar,
-    SUM(a.total_wrong)     AS total_salah
-  FROM quiz_attempts a
-  JOIN quizzes q ON a.quiz_id = q.id
-  WHERE a.user_id = :user_id
+    SUM(total_correct + total_wrong) AS total_soal,
+    SUM(total_correct) AS total_benar,
+    SUM(total_wrong) AS total_salah
+  FROM quiz_attempts
+  WHERE user_id = ?
 ");
-$stmtSummary->execute(['user_id' => $user_id]);
-$summary = $stmtSummary->fetch();
 
-$stmtMonthly = $pdo->prepare("
+$stmt->execute([$user_id]);
+$summary = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$stmt = $pdo->prepare("
   SELECT 
-    MONTH(a.created_at) AS bulan,
-    SUM(a.score) AS total_poin
-  FROM quiz_attempts a
-  WHERE a.user_id = :user_id
-  GROUP BY MONTH(a.created_at)
-  ORDER BY bulan
+    DATE_FORMAT(created_at, '%M %Y') AS month,
+    SUM(score) AS points
+  FROM quiz_attempts
+  WHERE user_id = ?
+  GROUP BY YEAR(created_at), MONTH(created_at)
+  ORDER BY created_at
 ");
-$stmtMonthly->execute(['user_id' => $user_id]);
+$stmt->execute([$user_id]);
+$reportData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$reportData = [];
-while ($row = $stmtMonthly->fetch()) {
-  $reportData[] = [
-    'month'  => date("M", mktime(0,0,0,$row['bulan'],1)),
-    'points' => (int)$row['total_poin']
-  ];
-}
-
-$stmtAvg = $pdo->prepare("
+$stmt = $pdo->prepare("
   SELECT AVG(score) AS avg_score
   FROM quiz_attempts
-  WHERE user_id = :user_id
+  WHERE user_id = ?
 ");
-$stmtAvg->execute(['user_id' => $user_id]);
-$avg = $stmtAvg->fetch();
+$stmt->execute([$user_id]);
+$avg = $stmt->fetch(PDO::FETCH_ASSOC);
 
-$stmtLeaderboard = $pdo->prepare("
-    SELECT 
-        u.id,
-        u.name,
-        u.kelas,
-        SUM(a.score) AS total_poin,
-        SUM(a.total_correct) AS total_benar,
-        COUNT(a.id) AS total_quiz
-    FROM users u
-    JOIN quiz_attempts a ON u.id = a.user_id
-    GROUP BY u.id
-    ORDER BY total_poin DESC
-    LIMIT 10
+$stmt = $pdo->query("
+  SELECT 
+    u.id,
+    u.name,
+    SUM(qa.score) AS total_poin
+  FROM users u
+  JOIN quiz_attempts qa ON qa.user_id = u.id
+  GROUP BY u.id
+  ORDER BY total_poin DESC
 ");
-$stmtLeaderboard->execute();
-$leaderboard = $stmtLeaderboard->fetchAll();
+$leaderboard = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$stmtLeaderboard = $pdo->prepare("
-    SELECT 
-        u.id,
-        u.name,
-        SUM(a.score) AS total_poin
-    FROM users u
-    JOIN quiz_attempts a ON u.id = a.user_id
-    GROUP BY u.id
-    ORDER BY total_poin DESC
-    LIMIT 10
-");
-$stmtLeaderboard->execute();
-$leaderboard = $stmtLeaderboard->fetchAll();
+$myRank = null;
+$rank = 1;
 
-$stmtMyRank = $pdo->prepare("
-    SELECT ranking FROM (
-        SELECT 
-            u.id,
-            RANK() OVER (ORDER BY SUM(a.score) DESC) AS ranking
-        FROM users u
-        JOIN quiz_attempts a ON u.id = a.user_id
-        GROUP BY u.id
-    ) ranked
-    WHERE id = :user_id
-");
-$stmtMyRank->execute(['user_id' => $user_id]);
-$myRank = $stmtMyRank->fetchColumn();
-?>
+foreach ($leaderboard as $row) {
+  if ($row['id'] == $user_id) {
+    $myRank = $rank;
+    break;
+  }
+  $rank++;
+}?>
 
 <?php $page = 'laporan'; ?>
 <!DOCTYPE html>
