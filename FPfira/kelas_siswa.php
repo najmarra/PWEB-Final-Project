@@ -1,7 +1,7 @@
     <?php
     session_start();
     if (!isset($_SESSION['user_id'])) {
-      header("Location: login.php");
+      header("Location: ../auth/login.php");
       exit;
     }?>
     <!DOCTYPE html>
@@ -201,7 +201,7 @@
 
     /* ================= CONTENT PANEL ================= */
     .content-panel{
-    background:var(--yellow-main);
+    background:white;
     border-radius:18px;
     padding:20px;
     box-shadow:0 12px 26px rgba(12,59,46,.06);
@@ -239,7 +239,7 @@
 
     /* ================= CLASS CARD ================= */
     .class-card{
-    background: var(--green-soft);
+    background: var(--yellow-main);
     border-radius:14px;
     padding:14px;
     display:flex;
@@ -252,7 +252,7 @@
     width:64px;
     height:64px;
     border-radius:12px;
-    background:var(--yellow-deep);
+    background:var(--green-soft);
     }
 
     .class-info h6{
@@ -323,7 +323,7 @@
     .filter-bar button{
       border-radius:20px;
       font-size:13px;
-      background: white;
+      background: var(--yellow-main);
     }
 
     .filter-bar button.active{
@@ -461,7 +461,7 @@ let filteredClasses = [];
 let currentTab = 'semua';
 
 /* ================= FETCH RECOMMENDED ================= */
-fetch('get_classes.php')
+fetch('../api/get_classes.php')
   .then(res => res.json())
   .then(data => {
     recommendedClasses = data;
@@ -474,12 +474,23 @@ fetchMyClasses();
 /* ================= FETCH MY CLASSES FUNC ================= */
 function fetchMyClasses(){
   fetch('../api/get_my_classes.php')
-    .then(res => res.json())
-    .then(data => {
-      myClasses = data;
+    .then(res => {
+      if(!res.ok) throw new Error('Response error');
+      return res.text(); // ⬅️ JANGAN langsung res.json()
+    })
+    .then(text => {
+      const data = text ? JSON.parse(text) : [];
+      myClasses = Array.isArray(data) ? data : [];
+    })
+    .catch(err => {
+      console.warn('My classes kosong / error:', err);
+      myClasses = [];
+    })
+    .finally(() => {
+      // ⬅️ INI KUNCI UTAMA
       filterClasses(currentTab);
       updateRecommended();
-      renderCalendar();
+      renderCalendar();   // ✅ PASTI DIPANGGIL
       renderSchedule();
     });
 }
@@ -498,6 +509,7 @@ function showTab(type, btn){
 /* ================= FILTER ================= */
 function filterClasses(type){
   const now = new Date();
+  now.setHours(0,0,0,0); // 🔑 KUNCI UTAMA
 
   filteredClasses = myClasses.filter(c=>{
     const start = new Date(c.startDate + 'T00:00:00');
@@ -575,7 +587,7 @@ function updateRecommended(){
 
 /* ================= ADD CLASS ================= */
 function addClass(id){
-  fetch('add_classes.php', {
+  fetch('../api/add_classes.php', {
     method: 'POST',
     headers: {'Content-Type':'application/x-www-form-urlencoded'},
     body: `course_id=${id}`
@@ -594,6 +606,8 @@ function addClass(id){
 function renderCalendar(){
   calendar.innerHTML = '';
 
+  const classes = Array.isArray(myClasses) ? myClasses : [];
+  
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
@@ -617,8 +631,8 @@ function renderCalendar(){
       currentYear === today.getFullYear()
     ) cls += ' today';
 
-    myClasses.forEach(c=>{
-      const start = new Date(c.startDate);
+    classes.forEach(c=>{
+      const start = new Date(c.startDate + 'T00:00:00');
       if(
         start.getDate() === day &&
         start.getMonth() === currentMonth &&
@@ -649,5 +663,4 @@ function renderSchedule(){
 }
 </script>
     </body>
-
     </html>
