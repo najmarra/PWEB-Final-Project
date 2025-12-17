@@ -401,6 +401,12 @@ button.btn.btn-warning.btn-action:focus{
   margin-top:12px;
 }
 
+/* Optional: hover style kamu */
+.btn.btn-action:hover {
+  background: var(--green-main) !important;
+  color: #fff !important;
+}
+
 @media (max-width:1100px){
       .cover{ width:98vw; height:94vh; padding:12px; flex-direction:column; overflow:auto }
       html,body{ overflow:auto } 
@@ -456,8 +462,8 @@ button.btn.btn-warning.btn-action:focus{
                 onclick="showTab('video')">Video</button>
 
         <button class="btn btn-sm btn-light"
-                data-tab="live"
-                onclick="showTab('live')">Live</button>
+                data-tab="zoom"
+                onclick="showTab('zoom')">Zoom</button>
       </div>
         <div id="materiList" class="materi-grid"></div>
         </div>
@@ -478,8 +484,8 @@ button.btn.btn-warning.btn-action:focus{
                   onclick="showTab('video')">Video</button>
 
           <button class="btn btn-sm btn-light"
-                  data-tab="live"
-                  onclick="showTab('live')">Live</button>
+                  data-tab="zoom"
+                  onclick="showTab('zoom')">Zoom</button>
         </div>
 
         <div class="row">
@@ -502,11 +508,8 @@ button.btn.btn-warning.btn-action:focus{
       </div>
       </div>
 
-      <!-- TAB LIVE -->
-      <!-- TAB LIVE -->
-  <div id="tab-live" class="d-none">
-
-  <!-- LIVE STREAMING -->
+      <!-- TAB ZOOM -->
+  <div id="tab-zoom" class="d-none">
   <div class="card mb-4">
     <h4>Materi Belajar</h4>
 
@@ -519,28 +522,12 @@ button.btn.btn-warning.btn-action:focus{
                 data-tab="video"
                 onclick="showTab('video')">Video</button>
 
-        <button class="btn btn-sm btn-light"
-                data-tab="live"
-                onclick="showTab('live') active">Live</button>
+        <button class="btn btn-sm btn-light active"
+                data-tab="zoom"
+                onclick="showTab('zoom')">Zoom</button>
       </div>
 
-    <h5 class="mb-3">🔴 Live Streaming</h5>
-
-    <!-- VIDEO UTAMA -->
-    <div class="ratio ratio-16x9 mb-3">
-      <iframe id="livePlayer"
-        src=""
-        allowfullscreen></iframe>
-    </div>
-
-    <!-- LIST LIVE -->
-    <div class="d-flex gap-3 overflow-auto pb-2" id="liveList">
-      <!-- card live di render js -->
-    </div>
-  </div>
-
   <!-- ZOOM -->
-  <div class="card">
     <h5 class="mb-3">🎥 Zoom Class</h5>
 
     <h6 class="text-muted mb-2">Sedang Berlangsung</h6>
@@ -548,7 +535,6 @@ button.btn.btn-warning.btn-action:focus{
 
     <h6 class="text-muted mb-2">Terjadwal</h6>
     <div class="materi-grid" id="zoomUpcoming"></div>
-  </div>
 
 </div>
 
@@ -580,7 +566,7 @@ const downloadLink = document.getElementById('downloadLink');
 const btnQuiz = document.getElementById('btnQuiz');
 
 function showTab(tab){
-  ['materi','video','live'].forEach(t=>{
+  ['materi','video','zoom'].forEach(t=>{
     document.getElementById('tab-'+t)?.classList.add('d-none');
   });
 
@@ -592,10 +578,10 @@ function showTab(tab){
     });
 
   // === ATUR TOMBOL LATIHAN SOAL ===
-  if(tab === 'video'){
-    btnQuiz.style.display = 'inline-block';
-  } else {
-    btnQuiz.style.display = 'none';
+  btnQuiz.style.display = (tab === 'video') ? 'inline-block' : 'none';
+
+   if(tab === 'zoom'){
+    loadZoom();
   }
 }
 
@@ -703,6 +689,65 @@ function convertDriveLink(link){
   return id
     ? `https://drive.google.com/file/d/${id}/preview`
     : link;
+}
+
+function loadZoom(){
+  fetch("../api/zoom_list_siswa.php")
+    .then(r => r.json())
+    .then(d => {
+      renderZoomLive(d.live || []);
+      renderZoomUpcoming(d.upcoming || []);
+    })
+    .catch(e => console.error("ZOOM ERROR", e));
+}
+
+
+function renderZoomLive(list){
+  const wrap = document.getElementById("zoomLive");
+  wrap.innerHTML = "";
+
+  if(!list || list.length === 0){
+    wrap.innerHTML = "<div class='text-muted'>Tidak ada kelas live</div>";
+    return;
+  }
+
+  list.forEach(z => {
+    wrap.innerHTML += `
+      <div class="materi-item">
+        <div class="materi-thumb">🎥</div>
+        <div class="materi-title">${z.title}</div>
+        <div class="mt-2">
+          <a href="${z.join_url}" 
+             target="_blank" 
+             class="btn btn-sm btn-danger w-100 btn-action">
+            Join Zoom
+          </a>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function renderZoomUpcoming(list){
+  const wrap = document.getElementById("zoomUpcoming");
+  wrap.innerHTML = "";
+
+  if(!list.length){
+    wrap.innerHTML = "<div class='text-muted'>Belum ada jadwal</div>";
+    return;
+  }
+
+  list.forEach(z => {
+    wrap.innerHTML += `
+      <div class="materi-item">
+        <div class="materi-thumb">📅</div>
+        <div class="materi-title">${z.title}</div>
+        <small class="text-muted">
+          ${new Date(z.created_at).toLocaleString()}
+        </small>
+      </div>
+    `;
+  });
 }
 </script>
 </body>
