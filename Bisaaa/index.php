@@ -140,8 +140,15 @@ $leaderboardGuru = $stmtLeaderboardGuru->fetchAll();
         <br />
 
         <div class="form-grid">
-          <input type="file" id="file" />
+          <input type="text" id="deskripsi" placeholder="Deskripsi singkat materi" />
           <input id="video" placeholder="Link Google Drive" />
+          <div></div>
+        </div>
+
+        <br />
+
+        <div class="form-grid">
+          <input type="file" id="file" />
         </div>
 
         <br />
@@ -154,9 +161,10 @@ $leaderboardGuru = $stmtLeaderboardGuru->fetchAll();
       <div class="table-wrap">
         <div class="table-title">Daftar Materi</div>
         <table>
-          <tr>
+         <tr>
             <th>No</th>
             <th>Judul</th>
+            <th>Deskripsi</th>
             <th>Jenis</th>
             <th>Aksi</th>
           </tr>
@@ -325,7 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const optC = document.getElementById("optC");
   const optD = document.getElementById("optD");
   const jawabanBenar = document.getElementById("jawabanBenar");
-
+  
   // ================== NAVIGATION ==================
   window.openPage = function(id, el) {
     document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
@@ -370,52 +378,70 @@ document.addEventListener("DOMContentLoaded", () => {
             : `<a href="${m.file}" target="_blank">🎥 Tonton Video</a>`;
 
           materiBody.innerHTML += `
-          <tr>
-            <td>${i + 1}</td>
-            <td>${m.judul}</td>
-            <td>
-              ${
-                m.jenis === "pdf"
-                  ? `<span class="badge-pdf">PDF</span>`
-                  : `<span class="badge-video">VIDEO</span>`
-              }
-            </td>
-            <td>
-              <a href="${m.file}" target="_blank">Lihat Materi</a>
-              <button class="btn-icon" onclick="hapusMateri(${m.id})">🗑</button>
-            </td>
-          </tr>
-          `;
+            <tr>
+              <td>${i + 1}</td>
+              <td>${m.judul}</td>
+              <td class="text-muted">${m.deskripsi || '-'}</td>
+              <td>
+                ${m.jenis === 'pdf'
+                  ? '<span class="badge-pdf">PDF</span>'
+                  : '<span class="badge-video">VIDEO</span>'}
+              </td>
+              <td>
+                <button onclick="hapusMateri(${m.id})">🗑</button>
+              </td>
+            </tr>
+            `;
         });
       });
   };
   loadMateri();
 
   window.uploadMateri = function () {
-    const form = new FormData();
-    form.append("judul", judul.value);
-    form.append("jenis", jenis.value);
+  const judul     = document.getElementById("judul");
+  const deskripsi = document.getElementById("deskripsi");
+  const jenis     = document.getElementById("jenis");
+  const file      = document.getElementById("file");
+  const video     = document.getElementById("video");
 
-    if (jenis.value === "pdf") {
-      form.append("file", file.files[0]);
-    } else {
-      form.append("video", video.value);
+  const form = new FormData();
+  form.append("judul", judul.value);
+  form.append("deskripsi", deskripsi.value);
+  form.append("jenis", jenis.value);
+
+  if (jenis.value === "pdf") {
+    if (!file.files.length) {
+      alert("Pilih file PDF");
+      return;
     }
+    form.append("file", file.files[0]);
+  } else {
+    if (video.value.trim() === "") {
+      alert("Masukkan link Google Drive");
+      return;
+    }
+    form.append("video", video.value.trim());
+  }
 
-    fetch("api/materi_add.php", {
-      method: "POST",
-      body: form
-    }).then(() => {
-      loadMateri();
-      alert("Materi berhasil ditambahkan");
-    });
-  };
-
-  window.hapusMateri = function (id) {
-    if (!confirm("Hapus materi ini?")) return;
-    fetch("api/materi_delete.php?id=" + id)
-      .then(() => loadMateri());
-  };
+  fetch("api/materi_add.php", {
+    method: "POST",
+    body: form
+  })
+  .then(r => r.json())
+  .then(res => {
+    console.log(res);
+    if (res.error) {
+      alert(res.error);
+      return;
+    }
+    alert("Materi berhasil ditambahkan");
+    loadMateri();
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Gagal upload materi");
+  });
+};
 
   // ================== QUIZ ==================
   window.loadQuiz = function () {
