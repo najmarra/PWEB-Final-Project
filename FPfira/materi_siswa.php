@@ -626,7 +626,7 @@ function showTab(tab){
 }
 
 /* ===== LOAD MATERI DARI BACKEND ===== */
-fetch("../api/materi_siswa.php")
+fetch("materi_siswa.php")
   .then(res => res.json())
   .then(data => {
     renderMateri(data.pdf);
@@ -733,7 +733,7 @@ function convertDriveLink(link){
 }
 
 function loadZoom(){
-  fetch("../api/zoom_list_siswa.php")
+  fetch("zoom_list_siswa.php")
     .then(r => r.json())
     .then(d => {
       renderZoomLive(d.live || []);
@@ -793,3 +793,4 @@ function renderZoomUpcoming(list){
 </script>
 </body>
 </html>
+
