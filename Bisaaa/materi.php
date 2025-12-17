@@ -487,7 +487,11 @@ button.btn.btn-warning.btn-action:focus{
           <div class="col-8">
             <div class="cardVideo">
               <div class="ratio ratio-16x9">
-                <iframe id="videoPlayer" src="" allowfullscreen></iframe>
+                <iframe id="videoPlayer"
+                        src=""
+                        allow="autoplay; encrypted-media"
+                        allowfullscreen>
+                </iframe>
               </div>
               <h6 class="mt-2" id="videoTitle"></h6>
               <p id="videoDesc"></p>
@@ -573,6 +577,27 @@ const materiReader = document.getElementById('materiReader');
 const materiTitle  = document.getElementById('materiTitle');
 const materiContent= document.getElementById('materiContent');
 const downloadLink = document.getElementById('downloadLink');
+const btnQuiz = document.getElementById('btnQuiz');
+
+function showTab(tab){
+  ['materi','video','live'].forEach(t=>{
+    document.getElementById('tab-'+t)?.classList.add('d-none');
+  });
+
+  document.getElementById('tab-'+tab)?.classList.remove('d-none');
+
+  document.querySelectorAll('.filter-bar .btn')
+    .forEach(btn=>{
+      btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+
+  // === ATUR TOMBOL LATIHAN SOAL ===
+  if(tab === 'video'){
+    btnQuiz.style.display = 'inline-block';
+  } else {
+    btnQuiz.style.display = 'none';
+  }
+}
 
 /* ===== LOAD MATERI DARI BACKEND ===== */
 fetch("../api/materi_siswa.php")
@@ -606,11 +631,18 @@ function renderMateri(list){
 function renderVideo(list){
   videoList.innerHTML = "";
 
+  if(list.length === 0){
+    videoList.innerHTML = "<div class='text-muted'>Belum ada video</div>";
+    return;
+  }
+
   list.forEach(v=>{
     videoList.innerHTML += `
-      <div class="class-card"
-           onclick="playVideo('${extractDriveId(v.file)}','${v.judul}')">
-        <strong>${v.judul}</strong>
+      <div class="class-card" onclick='playDriveVideo(${JSON.stringify(v)})'>
+        <strong>${v.judul}</strong><br>
+        <small class="text-muted">
+          ${v.deskripsi || ''}
+        </small>
       </div>
     `;
   });
@@ -642,10 +674,14 @@ function closeMateri(){
 }
 
 /* ===== VIDEO PLAYER ===== */
-function playVideo(id,title){
+function playDriveVideo(v){
   showTab('video');
-  videoPlayer.src = `https://www.youtube.com/embed/${id}`;
-  videoTitle.innerText = title;
+
+  videoTitle.innerText = v.judul;
+  videoDesc.innerText  = v.deskripsi || '';
+
+  videoPlayer.src = convertDriveLink(v.file);
+  btnQuiz.style.display = "inline-block";
 }
 
 /* ===== UTIL ===== */
@@ -655,9 +691,17 @@ function extractDriveId(link){
 }
 
 function convertDriveLink(link){
-  const id = link.match(/\/d\/(.*?)\//);
+  // support link share & link /d/
+  let id = null;
+
+  if(link.includes('/d/')){
+    id = link.match(/\/d\/(.*?)\//)?.[1];
+  } else if(link.includes('id=')){
+    id = link.match(/id=([^&]+)/)?.[1];
+  }
+
   return id
-    ? `https://drive.google.com/file/d/${id[1]}/preview`
+    ? `https://drive.google.com/file/d/${id}/preview`
     : link;
 }
 </script>
