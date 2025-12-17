@@ -1,7 +1,7 @@
     <?php
     session_start();
     if (!isset($_SESSION['user_id'])) {
-      header("Location: ../auth/login.php");
+      header("Location: login.php");
       exit;
     }?>
     <!DOCTYPE html>
@@ -461,7 +461,7 @@ let filteredClasses = [];
 let currentTab = 'semua';
 
 /* ================= FETCH RECOMMENDED ================= */
-fetch('../api/get_classes.php')
+fetch('get_classes.php')
   .then(res => res.json())
   .then(data => {
     recommendedClasses = data;
@@ -473,7 +473,7 @@ fetchMyClasses();
 
 /* ================= FETCH MY CLASSES FUNC ================= */
 function fetchMyClasses(){
-  fetch('../api/get_my_classes.php')
+  fetch('get_my_classes.php')
     .then(res => {
       if(!res.ok) throw new Error('Response error');
       return res.text(); // ⬅️ JANGAN langsung res.json()
@@ -664,3 +664,4 @@ function renderSchedule(){
 </script>
     </body>
     </html>
+
