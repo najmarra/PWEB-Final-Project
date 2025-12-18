@@ -1,5 +1,0 @@
-<?php
-include "../koneksi.php";
-$id = $_GET['id'];
-
-mysqli_query($conn,"DELETE FROM materi WHERE id=$id");
